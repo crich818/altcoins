@@ -4,3 +4,4 @@
 streamlit
 ccxt
 pandas
+matplotlib
