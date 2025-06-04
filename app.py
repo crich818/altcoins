@@ -5,7 +5,7 @@ import streamlit as st
 import time
 
 st.set_page_config(layout="wide")
-st.title("📈 Altcoin Portfolio Tracker (Gate.io, 30-Day Return + Hedge Option)")
+st.title("Altcoin Portfolio")
 
 # -------------------------------
 # Step 1: Portfolio Base Data
@@ -62,7 +62,6 @@ if st.button("🚀 Run 30-Day Performance Analysis"):
     exchange = ccxt.gateio()
     markets = exchange.load_markets()
 
-    # Portfolio price data
     price_data = {}
     latest_values = {}
     progress = st.progress(0)
@@ -100,9 +99,6 @@ if st.button("🚀 Run 30-Day Performance Analysis"):
             df_returns[token] * weights_normalized[token] for token in df_returns.columns if token in weights_normalized
         )
 
-        # -------------------------------
-        # Step 4: Optional Hedge Mode
-        # -------------------------------
         if show_hedge:
             st.write("📉 Loading top 5 hedge basket: BTC, ETH, SOL, BNB, XRP (equal short)")
             hedge_symbols = {
@@ -133,11 +129,26 @@ if st.button("🚀 Run 30-Day Performance Analysis"):
             df_returns["Portfolio (Hedged)"] = df_returns["Portfolio % Return (Weighted)"] - df_hedge["Hedge Basket Return"]
 
         # -------------------------------
-        # Step 5: Charts and Tables
+        # Step 5: Interactive Chart
         # -------------------------------
         st.subheader("📊 % Return Over Last 30 Days")
-        st.line_chart(df_returns)
+        available_columns = df_returns.columns.tolist()
+        default_selection = ["Portfolio % Return (Weighted)"]
+        selected_columns = st.multiselect("Select tokens to show in the chart:", available_columns, default=default_selection)
 
+        if selected_columns:
+            st.line_chart(df_returns[selected_columns])
+        else:
+            st.warning("Please select at least one token to show.")
+
+        # Comparison chart
+        if "Portfolio (Hedged)" in df_returns.columns:
+            st.subheader("📊 Hedged vs. Unhedged Portfolio")
+            st.line_chart(df_returns[["Portfolio % Return (Weighted)", "Portfolio (Hedged)"]])
+
+        # -------------------------------
+        # Step 6: Return Snapshot & Value
+        # -------------------------------
         st.subheader("📋 Latest % Return Snapshot")
         latest = df_returns.iloc[-1].sort_values(ascending=False).round(2)
         st.dataframe(latest.to_frame("Latest % Return"))
@@ -157,6 +168,5 @@ if st.button("🚀 Run 30-Day Performance Analysis"):
         st.metric(label="Total Portfolio Value (USDT)", value=f"${total_value:,.2f}")
     else:
         st.error("❌ No data returned. Check your token symbols or try again.")
-
 else:
     st.info("👇 Choose a weighting mode and press **Run Analysis** to see returns.")
